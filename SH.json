@@ -1,0 +1,994 @@
+[
+  {
+    "id": "tab_b2",
+    "type": "tab",
+    "label": "Bài 2 - Smart Home Shadow",
+    "disabled": false,
+    "info": "Bài 2: đồng bộ desired/reported. Xem comment từng khối A-D."
+  },
+  {
+    "id": "b_esp",
+    "type": "mqtt-broker",
+    "name": "Broker (ESP ảo)",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "esp-sim-01",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "b_cloud",
+    "type": "mqtt-broker",
+    "name": "Broker (Shadow/Cloud)",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "shadow-cloud",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "tab_ui_main",
+    "type": "ui_tab",
+    "name": "Nhà thông minh",
+    "icon": "dashboard",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "g_living",
+    "type": "ui_group",
+    "name": "Phòng khách",
+    "tab": "tab_ui_main",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "g_kitchen",
+    "type": "ui_group",
+    "name": "Nhà bếp",
+    "tab": "tab_ui_main",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "g_bedroom",
+    "type": "ui_group",
+    "name": "Phòng ngủ",
+    "tab": "tab_ui_main",
+    "order": 3,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "g_dev",
+    "type": "ui_group",
+    "name": "Thiết bị ESP",
+    "tab": "tab_ui_main",
+    "order": 4,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "c_a",
+    "type": "comment",
+    "z": "tab_b2",
+    "name": "A. ESP ảo: nhận lệnh, trễ 0,5-2 s, bỏ 10% lệnh, publish state (retain)",
+    "info": "",
+    "x": 330,
+    "y": 30,
+    "wires": []
+  },
+  {
+    "id": "esp_in",
+    "type": "mqtt in",
+    "z": "tab_b2",
+    "name": "lights/+/command",
+    "topic": "lights/+/command",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "b_esp",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 90,
+    "wires": [
+      [
+        "esp_filter"
+      ]
+    ]
+  },
+  {
+    "id": "esp_filter",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Lọc: offline / mất 10%",
+    "func": "// 1) Thiết bị đang \"ngắt kết nối\" -> bỏ qua mọi lệnh\nif (flow.get('esp_offline') === true) {\n    node.status({fill:'grey', shape:'ring', text:'offline: bỏ lệnh'});\n    return null;\n}\n// 2) Mô phỏng lỗi: 10% lệnh bị bỏ qua\nif (Math.random() < 0.10) {\n    node.status({fill:'red', shape:'ring', text:'bỏ qua lệnh (lỗi giả lập)'});\n    return null;\n}\nconst v = String(msg.payload).trim().toUpperCase();\nif (v !== 'ON' && v !== 'OFF') return null;\nnode.status({fill:'green', shape:'dot', text:'nhận ' + msg.topic + '=' + v});\nreturn { room: msg.topic.split('/')[1], value: v };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 370,
+    "y": 90,
+    "wires": [
+      [
+        "esp_delay"
+      ]
+    ]
+  },
+  {
+    "id": "esp_delay",
+    "type": "delay",
+    "z": "tab_b2",
+    "name": "Trễ ngẫu nhiên 0,5-2 s",
+    "pauseType": "random",
+    "timeout": "5",
+    "timeoutUnits": "seconds",
+    "rate": "1",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "0.5",
+    "randomLast": "2",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 600,
+    "y": 90,
+    "wires": [
+      [
+        "esp_publish"
+      ]
+    ]
+  },
+  {
+    "id": "esp_publish",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Tạo state (retain)",
+    "func": "// Nếu bị ngắt kết nối trong lúc đang xử lý thì cũng không publish được\nif (flow.get('esp_offline') === true) return null;\nreturn { topic: 'lights/' + msg.room + '/state', payload: msg.value, qos: 1, retain: true };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 820,
+    "y": 90,
+    "wires": [
+      [
+        "esp_out"
+      ]
+    ]
+  },
+  {
+    "id": "esp_out",
+    "type": "mqtt out",
+    "z": "tab_b2",
+    "name": "lights/<phòng>/state",
+    "topic": "",
+    "qos": "",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b_esp",
+    "x": 1040,
+    "y": 90,
+    "wires": []
+  },
+  {
+    "id": "esp_init",
+    "type": "inject",
+    "z": "tab_b2",
+    "name": "Khởi động: online",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "false",
+    "payloadType": "bool",
+    "x": 160,
+    "y": 170,
+    "wires": [
+      [
+        "esp_set_offline"
+      ]
+    ]
+  },
+  {
+    "id": "sw_offline",
+    "type": "ui_switch",
+    "z": "tab_b2",
+    "name": "",
+    "label": "Ngắt kết nối thiết bị",
+    "tooltip": "",
+    "group": "g_dev",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "",
+    "topicType": "str",
+    "style": "",
+    "onvalue": "true",
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "",
+    "offvalue": "false",
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "",
+    "animate": false,
+    "className": "",
+    "x": 180,
+    "y": 210,
+    "wires": [
+      [
+        "esp_set_offline"
+      ]
+    ]
+  },
+  {
+    "id": "esp_set_offline",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Đặt cờ offline + báo status",
+    "func": "const off = (msg.payload === true);\nflow.set('esp_offline', off);\nnode.status({fill: off ? 'red' : 'green', shape: 'dot', text: off ? 'OFFLINE' : 'ONLINE'});\n// Thiết bị thật sẽ dùng Last Will; ở đây ta publish thay cho nó (retain)\nreturn { topic: 'devices/esp01/status', payload: off ? 'offline' : 'online', qos: 1, retain: true };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 190,
+    "wires": [
+      [
+        "esp_status_out"
+      ]
+    ]
+  },
+  {
+    "id": "esp_status_out",
+    "type": "mqtt out",
+    "z": "tab_b2",
+    "name": "devices/esp01/status",
+    "topic": "",
+    "qos": "",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b_esp",
+    "x": 680,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "c_b",
+    "type": "comment",
+    "z": "tab_b2",
+    "name": "B. Shadow (Twin tự xây): desired / reported / version / lastUpdated",
+    "info": "",
+    "x": 320,
+    "y": 270,
+    "wires": []
+  },
+  {
+    "id": "sh_in_state",
+    "type": "mqtt in",
+    "z": "tab_b2",
+    "name": "lights/+/state",
+    "topic": "lights/+/state",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "b_cloud",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 320,
+    "wires": [
+      [
+        "sh_parse_state"
+      ]
+    ]
+  },
+  {
+    "id": "sh_parse_state",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Chuẩn hóa: reported",
+    "func": "const v = String(msg.payload).trim().toUpperCase();\nif (v !== 'ON' && v !== 'OFF') return null;\nreturn { event: 'reported', room: msg.topic.split('/')[1], value: v };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 320,
+    "wires": [
+      [
+        "shadow"
+      ]
+    ]
+  },
+  {
+    "id": "sh_in_status",
+    "type": "mqtt in",
+    "z": "tab_b2",
+    "name": "devices/esp01/status",
+    "topic": "devices/esp01/status",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "b_cloud",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 380,
+    "wires": [
+      [
+        "sh_parse_status"
+      ]
+    ]
+  },
+  {
+    "id": "sh_parse_status",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Chuẩn hóa: online/offline",
+    "func": "const online = String(msg.payload).trim().toLowerCase() === 'online';\nnode.status({fill: online ? 'green' : 'red', shape: 'dot', text: online ? 'ONLINE' : 'OFFLINE'});\n// output 1: chỉ khi online thì Shadow đẩy lại desired; output 2: hiển thị trên dashboard\nreturn [ online ? { event: 'online' } : null, { payload: online ? 'Trực tuyến' : 'Ngoại tuyến' } ];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 380,
+    "wires": [
+      [
+        "shadow"
+      ],
+      [
+        "ui_dev_text"
+      ]
+    ]
+  },
+  {
+    "id": "ui_dev_text",
+    "type": "ui_text",
+    "z": "tab_b2",
+    "group": "g_dev",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "Thiết bị",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 660,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "sw_living",
+    "type": "ui_switch",
+    "z": "tab_b2",
+    "name": "",
+    "label": "Đèn phòng khách",
+    "tooltip": "",
+    "group": "g_living",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "decouple": "false",
+    "topic": "living",
+    "topicType": "str",
+    "style": "",
+    "onvalue": "ON",
+    "onvalueType": "str",
+    "onicon": "",
+    "oncolor": "",
+    "offvalue": "OFF",
+    "offvalueType": "str",
+    "officon": "",
+    "offcolor": "",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 450,
+    "wires": [
+      [
+        "sh_norm_ui"
+      ]
+    ]
+  },
+  {
+    "id": "sw_kitchen",
+    "type": "ui_switch",
+    "z": "tab_b2",
+    "name": "",
+    "label": "Đèn nhà bếp",
+    "tooltip": "",
+    "group": "g_kitchen",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "decouple": "false",
+    "topic": "kitchen",
+    "topicType": "str",
+    "style": "",
+    "onvalue": "ON",
+    "onvalueType": "str",
+    "onicon": "",
+    "oncolor": "",
+    "offvalue": "OFF",
+    "offvalueType": "str",
+    "officon": "",
+    "offcolor": "",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 490,
+    "wires": [
+      [
+        "sh_norm_ui"
+      ]
+    ]
+  },
+  {
+    "id": "sw_bedroom",
+    "type": "ui_switch",
+    "z": "tab_b2",
+    "name": "",
+    "label": "Đèn phòng ngủ",
+    "tooltip": "",
+    "group": "g_bedroom",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "decouple": "false",
+    "topic": "bedroom",
+    "topicType": "str",
+    "style": "",
+    "onvalue": "ON",
+    "onvalueType": "str",
+    "onicon": "",
+    "oncolor": "",
+    "offvalue": "OFF",
+    "offvalueType": "str",
+    "officon": "",
+    "offcolor": "",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 530,
+    "wires": [
+      [
+        "sh_norm_ui"
+      ]
+    ]
+  },
+  {
+    "id": "sh_norm_ui",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Chuẩn hóa: lệnh từ Dashboard",
+    "func": "// msg.topic của ui_switch chính là tên phòng (living/kitchen/bedroom)\nreturn { event: 'user', room: msg.topic, value: msg.payload, source: 'dashboard' };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 490,
+    "wires": [
+      [
+        "shadow"
+      ]
+    ]
+  },
+  {
+    "id": "sh_tick",
+    "type": "inject",
+    "z": "tab_b2",
+    "name": "Tick mỗi 1 s",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "event",
+        "v": "tick",
+        "vt": "str"
+      }
+    ],
+    "repeat": "1",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 580,
+    "wires": [
+      [
+        "shadow"
+      ]
+    ]
+  },
+  {
+    "id": "shadow",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "SHADOW (desired/reported)",
+    "func": "// ================= SHADOW / TWIN =================\n// Tài liệu lưu trong flow context 'shadow':\n// { desired:{room:ON|OFF}, reported:{room:ON|OFF}, version:n, lastUpdated:ISO,\n//   meta:{room:{status:'synced'|'pending'|'error', retries, lastSent, lastSource, lastUserAt}} }\nconst ROOMS = ['living', 'kitchen', 'bedroom'];\nconst NAMES = { living: 'Đèn phòng khách', kitchen: 'Đèn nhà bếp', bedroom: 'Đèn phòng ngủ' };\nconst RESEND_MS = 5000;          // desired != reported quá 5 s thì gửi lại\nconst MAX_RETRY = 3;             // tối đa 3 lần gửi lại, sau đó đánh dấu \"không phản hồi\"\nconst DASH_PRIORITY_MS = 3000;   // Dashboard ưu tiên hơn trợ lý trong 3 s (đặt 0 = last-write-wins thuần)\n\nconst now = Date.now();\nlet sh = flow.get('shadow');\nif (!sh) {\n    sh = { desired: {}, reported: {}, version: 0, lastUpdated: null, meta: {} };\n    ROOMS.forEach(r => {\n        sh.desired[r] = null; sh.reported[r] = null;\n        sh.meta[r] = { status: 'synced', retries: 0, lastSent: 0, lastSource: null, lastUserAt: 0 };\n    });\n}\nconst cmds = [], notes = [];\nconst touched = new Set();\nconst send = r => cmds.push({ topic: 'lights/' + r + '/command', payload: sh.desired[r], qos: 1, retain: false });\nconst bump = () => { sh.version++; sh.lastUpdated = new Date(now).toISOString(); };\n\nswitch (msg.event) {\n    case 'user': {              // Dashboard hoặc trợ lý ảo đổi desired\n        const r = msg.room, v = msg.value, src = msg.source || 'dashboard';\n        if (!ROOMS.includes(r) || (v !== 'ON' && v !== 'OFF')) break;\n        const m = sh.meta[r];\n        if (src === 'assistant' && m.lastSource === 'dashboard' && sh.desired[r] !== v && (now - m.lastUserAt) < DASH_PRIORITY_MS) {\n            node.warn('XUNG ĐỘT ' + r + ': bỏ lệnh trợ lý (' + v + '), Dashboard đang ưu tiên');\n            node.status({ fill: 'yellow', shape: 'ring', text: 'xung đột ' + r + ': bỏ lệnh assistant' });\n            break;\n        }\n        sh.desired[r] = v; m.lastSource = src; m.lastUserAt = now;\n        m.retries = 0; m.lastSent = now; bump();\n        if (sh.reported[r] === v) { m.status = 'synced'; }\n        else { m.status = 'pending'; send(r); }\n        touched.add(r);\n        break;\n    }\n    case 'reported': {          // thiết bị báo trạng thái thực tế\n        const r = msg.room, v = msg.value;\n        if (!ROOMS.includes(r)) break;\n        const m = sh.meta[r];\n        if (sh.reported[r] !== v) { sh.reported[r] = v; bump(); }\n        if (sh.desired[r] === null) { sh.desired[r] = v; }          // khởi tạo từ state retain\n        if (sh.desired[r] === v) { m.status = 'synced'; m.retries = 0; }\n        else if (m.status === 'synced') { m.status = 'pending'; m.retries = 0; m.lastSent = now; }\n        touched.add(r);\n        break;\n    }\n    case 'online': {            // thiết bị online lại -> đẩy desired mới nhất xuống\n        ROOMS.forEach(r => {\n            if (sh.desired[r] === null) return;\n            const m = sh.meta[r];\n            m.retries = 0; m.lastSent = now;\n            m.status = (sh.reported[r] === sh.desired[r]) ? 'synced' : 'pending';\n            send(r); touched.add(r);\n        });\n        break;\n    }\n    case 'tick': {              // kiểm tra quá hạn mỗi giây\n        ROOMS.forEach(r => {\n            const m = sh.meta[r];\n            if (sh.desired[r] === null || sh.desired[r] === sh.reported[r] || m.status === 'error') return;\n            if (now - m.lastSent < RESEND_MS) return;\n            if (m.retries < MAX_RETRY) {\n                m.retries++; m.lastSent = now; send(r);\n                node.status({ fill: 'yellow', shape: 'dot', text: 'gửi lại ' + r + ' lần ' + m.retries });\n            } else {\n                m.status = 'error'; touched.add(r);\n                notes.push({ room: r, name: NAMES[r],\n                    time: new Date(now).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false }) });\n                node.status({ fill: 'red', shape: 'dot', text: r + ': không phản hồi' });\n            }\n        });\n        const n = (context.get('ticks') || 0) + 1; context.set('ticks', n);\n        if (n % 15 === 1) ROOMS.forEach(r => touched.add(r));       // làm tươi dashboard định kỳ\n        break;\n    }\n}\nflow.set('shadow', sh);\n\nconst ui = [...touched].map(r => ({ room: r, desired: sh.desired[r], reported: sh.reported[r], status: sh.meta[r].status }));\nconst snap = (touched.size > 0 || cmds.length > 0) ? { payload: JSON.parse(JSON.stringify(sh)) } : null;\nreturn [cmds.length ? cmds : null, ui.length ? ui : null, notes.length ? notes : null, snap];",
+    "outputs": 4,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 700,
+    "y": 450,
+    "wires": [
+      [
+        "sh_cmd_out"
+      ],
+      [
+        "ui_split"
+      ],
+      [
+        "notify_build"
+      ],
+      [
+        "dbg_shadow"
+      ]
+    ]
+  },
+  {
+    "id": "sh_cmd_out",
+    "type": "mqtt out",
+    "z": "tab_b2",
+    "name": "lights/<phòng>/command",
+    "topic": "",
+    "qos": "",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b_cloud",
+    "x": 1000,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "dbg_shadow",
+    "type": "debug",
+    "z": "tab_b2",
+    "name": "Shadow document",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1000,
+    "y": 620,
+    "wires": []
+  },
+  {
+    "id": "ui_split",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Phân phối UI",
+    "func": "// output = phòng*3 + {0: switch(desired), 1: led(reported), 2: text(trạng thái)}\nconst idx = { living: 0, kitchen: 1, bedroom: 2 }[msg.room];\nconst text = { synced: 'Đã đồng bộ', pending: 'Đang chờ', error: 'Lỗi' }[msg.status];\nconst out = new Array(9).fill(null);\nout[idx*3 + 0] = { payload: msg.desired !== null ? msg.desired : (msg.reported !== null ? msg.reported : 'OFF') };\nout[idx*3 + 1] = { payload: msg.reported === 'ON' };\nout[idx*3 + 2] = { payload: text };\nreturn out;",
+    "outputs": 9,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 480,
+    "wires": [
+      [
+        "sw_living"
+      ],
+      [
+        "led_living"
+      ],
+      [
+        "txt_living"
+      ],
+      [
+        "sw_kitchen"
+      ],
+      [
+        "led_kitchen"
+      ],
+      [
+        "txt_kitchen"
+      ],
+      [
+        "sw_bedroom"
+      ],
+      [
+        "led_bedroom"
+      ],
+      [
+        "txt_bedroom"
+      ]
+    ]
+  },
+  {
+    "id": "led_living",
+    "type": "ui_led",
+    "z": "tab_b2",
+    "order": 2,
+    "group": "g_living",
+    "width": 0,
+    "height": 0,
+    "label": "Thực tế (reported)",
+    "labelPlacement": "left",
+    "labelAlignment": "left",
+    "colorForValue": [
+      {
+        "color": "#9e9e9e",
+        "value": "false",
+        "valueType": "bool"
+      },
+      {
+        "color": "#00c853",
+        "value": "true",
+        "valueType": "bool"
+      }
+    ],
+    "allowColorForValueInMessage": false,
+    "shape": "circle",
+    "showGlow": true,
+    "name": "",
+    "x": 1350,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "txt_living",
+    "type": "ui_text",
+    "z": "tab_b2",
+    "group": "g_living",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "Trạng thái",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1350,
+    "y": 450,
+    "wires": []
+  },
+  {
+    "id": "led_kitchen",
+    "type": "ui_led",
+    "z": "tab_b2",
+    "order": 2,
+    "group": "g_kitchen",
+    "width": 0,
+    "height": 0,
+    "label": "Thực tế (reported)",
+    "labelPlacement": "left",
+    "labelAlignment": "left",
+    "colorForValue": [
+      {
+        "color": "#9e9e9e",
+        "value": "false",
+        "valueType": "bool"
+      },
+      {
+        "color": "#00c853",
+        "value": "true",
+        "valueType": "bool"
+      }
+    ],
+    "allowColorForValueInMessage": false,
+    "shape": "circle",
+    "showGlow": true,
+    "name": "",
+    "x": 1350,
+    "y": 480,
+    "wires": []
+  },
+  {
+    "id": "txt_kitchen",
+    "type": "ui_text",
+    "z": "tab_b2",
+    "group": "g_kitchen",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "Trạng thái",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1350,
+    "y": 510,
+    "wires": []
+  },
+  {
+    "id": "led_bedroom",
+    "type": "ui_led",
+    "z": "tab_b2",
+    "order": 2,
+    "group": "g_bedroom",
+    "width": 0,
+    "height": 0,
+    "label": "Thực tế (reported)",
+    "labelPlacement": "left",
+    "labelAlignment": "left",
+    "colorForValue": [
+      {
+        "color": "#9e9e9e",
+        "value": "false",
+        "valueType": "bool"
+      },
+      {
+        "color": "#00c853",
+        "value": "true",
+        "valueType": "bool"
+      }
+    ],
+    "allowColorForValueInMessage": false,
+    "shape": "circle",
+    "showGlow": true,
+    "name": "",
+    "x": 1350,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "txt_bedroom",
+    "type": "ui_text",
+    "z": "tab_b2",
+    "group": "g_bedroom",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "Trạng thái",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1350,
+    "y": 570,
+    "wires": []
+  },
+  {
+    "id": "notify_build",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Tạo body {value1, value2}",
+    "func": "// value1 = tên đèn, value2 = thời gian\nreturn { payload: { value1: msg.name, value2: msg.time } };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 560,
+    "wires": [
+      [
+        "notify_http"
+      ]
+    ]
+  },
+  {
+    "id": "notify_http",
+    "type": "http request",
+    "z": "tab_b2",
+    "name": "POST webhook.site",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "https://webhook.site/THAY-BANG-UUID-CUA-BAN",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1230,
+    "y": 560,
+    "wires": [
+      [
+        "dbg_notify"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_notify",
+    "type": "debug",
+    "z": "tab_b2",
+    "name": "Kết quả gửi thông báo",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1440,
+    "y": 560,
+    "wires": []
+  },
+  {
+    "id": "c_c",
+    "type": "comment",
+    "z": "tab_b2",
+    "name": "C. Trợ lý ảo: POST /webhook/assistant  (Authorization: Bearer <token>)",
+    "info": "",
+    "x": 330,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "as_in",
+    "type": "http in",
+    "z": "tab_b2",
+    "name": "",
+    "url": "/webhook/assistant",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 760,
+    "wires": [
+      [
+        "as_check"
+      ]
+    ]
+  },
+  {
+    "id": "as_check",
+    "type": "function",
+    "z": "tab_b2",
+    "name": "Kiểm tra token + JSON",
+    "func": "// Token lấy từ biến môi trường ASSISTANT_TOKEN, mặc định để test\nconst TOKEN = env.get('ASSISTANT_TOKEN') || 'smarthome-secret-token';\nconst ROOMS = ['living', 'kitchen', 'bedroom'];\nconst reply = (code, body) => { msg.statusCode = code; msg.payload = body; return [null, msg]; };\n\n// 1) Kiểm tra token trước -> 401\nconst auth = (msg.req.headers['authorization'] || '').trim();\nif (auth !== 'Bearer ' + TOKEN) return reply(401, { error: 'unauthorized' });\n\n// 2) Kiểm tra JSON -> 400\nlet body = msg.payload;\nif (Buffer.isBuffer(body)) body = body.toString('utf8');\nif (typeof body === 'string') {\n    try { body = JSON.parse(body); } catch (e) { return reply(400, { error: 'invalid JSON' }); }\n}\nif (!body || typeof body !== 'object' || !ROOMS.includes(body.device) ||\n    !['on', 'off'].includes(String(body.action).toLowerCase())) {\n    return reply(400, { error: 'body phải là {\"device\": living|kitchen|bedroom, \"action\": on|off}' });\n}\n\n// 3) Hợp lệ -> 200 và chuyển lệnh cho Shadow (nguồn = assistant)\nmsg.statusCode = 200;\nmsg.payload = { status: 'accepted', device: body.device, action: String(body.action).toLowerCase() };\nconst toShadow = { event: 'user', room: body.device, value: String(body.action).toUpperCase(), source: 'assistant' };\nreturn [toShadow, msg];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 760,
+    "wires": [
+      [
+        "shadow"
+      ],
+      [
+        "as_res"
+      ]
+    ]
+  },
+  {
+    "id": "as_res",
+    "type": "http response",
+    "z": "tab_b2",
+    "name": "",
+    "statusCode": "",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "x": 640,
+    "y": 800,
+    "wires": []
+  },
+  {
+    "id": "c_d",
+    "type": "comment",
+    "z": "tab_b2",
+    "name": "D. Dashboard: http://localhost:1880/ui  |  Thông báo: sửa URL ở node 'POST webhook.site'",
+    "info": "",
+    "x": 380,
+    "y": 880,
+    "wires": []
+  }
+]
